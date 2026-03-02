@@ -11,6 +11,7 @@
 		9DEBECCDC0C55E160861313A /* MojiStickerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9022AB926A1414F5C245C767 /* MojiStickerApp.swift */; };
 		CBA735BA56D1A6B015E9AD7B /* DouyinResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDD089561FA7F82C6BC6CE42 /* DouyinResponse.swift */; };
 		CED05682F66A18FBD4CCBE0C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED38EE49170ABDC6038A2692 /* AppDelegate.swift */; };
+		EE55872E3F51760870410388 /* DouyinCookieManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A36EB98F0D6863A57F31DAC /* DouyinCookieManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -18,6 +19,7 @@
 		12D59497AE9928605D0F4EB9 /* MojiSticker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MojiSticker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7E659FD67E74968FC3839329 /* MojiSticker.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MojiSticker.entitlements; sourceTree = "<group>"; };
 		9022AB926A1414F5C245C767 /* MojiStickerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MojiStickerApp.swift; sourceTree = "<group>"; };
+		9A36EB98F0D6863A57F31DAC /* DouyinCookieManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DouyinCookieManager.swift; sourceTree = "<group>"; };
 		A95D66B46F206ADA36BED682 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		DDD089561FA7F82C6BC6CE42 /* DouyinResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DouyinResponse.swift; sourceTree = "<group>"; };
 		ED38EE49170ABDC6038A2692 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -33,12 +35,21 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		78D8CFC49927523BCDEBA5B7 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				9A36EB98F0D6863A57F31DAC /* DouyinCookieManager.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
 		7B3D94FE9BEAF37FF944B26E /* MojiSticker */ = {
 			isa = PBXGroup;
 			children = (
 				39CDF7D7A32E3E5CE4F1B3C0 /* App */,
 				E21B70533B8A2820E88EAFF6 /* Models */,
 				AFF9EC2BF30488545BDBCE7D /* Resources */,
+				78D8CFC49927523BCDEBA5B7 /* Services */,
 			);
 			path = MojiSticker;
 			sourceTree = "<group>";
@@ -131,6 +142,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CED05682F66A18FBD4CCBE0C /* AppDelegate.swift in Sources */,
+				EE55872E3F51760870410388 /* DouyinCookieManager.swift in Sources */,
 				CBA735BA56D1A6B015E9AD7B /* DouyinResponse.swift in Sources */,
 				9DEBECCDC0C55E160861313A /* MojiStickerApp.swift in Sources */,
 				742FD20D2D8294A817256E02 /* StickerItem.swift in Sources */,
