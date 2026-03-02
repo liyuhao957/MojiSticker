@@ -1,0 +1,22 @@
+name: MojiSticker
+options:
+  bundleIdPrefix: com.moji
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "15.0"
+targets:
+  MojiSticker:
+    type: application
+    platform: macOS
+    sources:
+      - MojiSticker
+    settings:
+      base:
+        INFOPLIST_FILE: MojiSticker/Resources/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.moji.MojiSticker
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_VERSION: "5.9"
+        MACOSX_DEPLOYMENT_TARGET: "14.0"
+        CODE_SIGN_ENTITLEMENTS: MojiSticker/Resources/MojiSticker.entitlements
+        ENABLE_APP_SANDBOX: false
