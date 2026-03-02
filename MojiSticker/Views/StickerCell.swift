@@ -5,7 +5,7 @@ struct StickerCell: View {
     let index: Int
     let isCopyFeedback: Bool
     let onTap: () -> Void
-    let onHover: (Bool) -> Void
+    let onHover: (Bool, Data?) -> Void
 
     @State private var imageData: Data?
     @State private var frames: [(image: CGImage, duration: TimeInterval)]?
@@ -32,7 +32,7 @@ struct StickerCell: View {
         .onTapGesture { onTap() }
         .onHover { hovering in
             isHovering = hovering
-            onHover(hovering)
+            onHover(hovering, imageData)
             handleHoverAnimation(hovering)
         }
         .task { await loadImage() }
