@@ -11,6 +11,7 @@
 		742FD20D2D8294A817256E02 /* StickerItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 062974036783255704512B9A /* StickerItem.swift */; };
 		9DEBECCDC0C55E160861313A /* MojiStickerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9022AB926A1414F5C245C767 /* MojiStickerApp.swift */; };
 		A3C2E90E3589543FF3FBEFB6 /* ImageCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77FE3DC3923309D648B417B8 /* ImageCacheService.swift */; };
+		AFF409FD246D2D8463B1CBE2 /* SearchState.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2AB0D663EBD8D6632656467 /* SearchState.swift */; };
 		B9ED94812A1F70971C0D4B1A /* ImageProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C949A93921ADCD7E7FE912F /* ImageProcessor.swift */; };
 		CBA735BA56D1A6B015E9AD7B /* DouyinResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDD089561FA7F82C6BC6CE42 /* DouyinResponse.swift */; };
 		CED05682F66A18FBD4CCBE0C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED38EE49170ABDC6038A2692 /* AppDelegate.swift */; };
@@ -30,6 +31,7 @@
 		9A36EB98F0D6863A57F31DAC /* DouyinCookieManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DouyinCookieManager.swift; sourceTree = "<group>"; };
 		A95D66B46F206ADA36BED682 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		DDD089561FA7F82C6BC6CE42 /* DouyinResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DouyinResponse.swift; sourceTree = "<group>"; };
+		E2AB0D663EBD8D6632656467 /* SearchState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchState.swift; sourceTree = "<group>"; };
 		ED38EE49170ABDC6038A2692 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -103,6 +105,7 @@
 			isa = PBXGroup;
 			children = (
 				DDD089561FA7F82C6BC6CE42 /* DouyinResponse.swift */,
+				E2AB0D663EBD8D6632656467 /* SearchState.swift */,
 				062974036783255704512B9A /* StickerItem.swift */,
 			);
 			path = Models;
@@ -169,6 +172,7 @@
 				A3C2E90E3589543FF3FBEFB6 /* ImageCacheService.swift in Sources */,
 				B9ED94812A1F70971C0D4B1A /* ImageProcessor.swift in Sources */,
 				9DEBECCDC0C55E160861313A /* MojiStickerApp.swift in Sources */,
+				AFF409FD246D2D8463B1CBE2 /* SearchState.swift in Sources */,
 				742FD20D2D8294A817256E02 /* StickerItem.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
