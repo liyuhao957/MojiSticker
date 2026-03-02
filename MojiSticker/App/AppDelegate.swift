@@ -13,7 +13,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let panel = searchPanel else { return }
         positionPanel(panel)
         panel.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        NSApp.activate()
     }
 
     private func setupSearchPanel() {

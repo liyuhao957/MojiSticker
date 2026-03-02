@@ -16,8 +16,6 @@ struct MojiStickerApp: App {
             }
             .keyboardShortcut("q")
         }
-        Settings {
-            EmptyView()
-        }
+        Settings { }
     }
 }
