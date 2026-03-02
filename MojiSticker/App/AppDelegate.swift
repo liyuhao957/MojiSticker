@@ -33,12 +33,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         panel.backgroundColor = .clear
         panel.isOpaque = false
 
-        let placeholder = NSHostingView(rootView:
-            Text("MojiSticker")
-                .frame(width: 380, height: 520)
-                .background(.ultraThinMaterial)
-        )
-        panel.contentView = placeholder
+        let hostingView = NSHostingView(rootView: SearchWindow())
+        panel.contentView = hostingView
         self.searchPanel = panel
     }
 
