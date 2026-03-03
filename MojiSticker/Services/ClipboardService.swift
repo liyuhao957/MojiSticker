@@ -25,6 +25,17 @@ struct ClipboardService {
         }
     }
 
+    /// Remove stale moji_* temp files (call on app launch)
+    static func cleanupTempFiles() {
+        let tmpDir = FileManager.default.temporaryDirectory
+        guard let files = try? FileManager.default.contentsOfDirectory(
+            at: tmpDir, includingPropertiesForKeys: nil
+        ) else { return }
+        for file in files where file.lastPathComponent.hasPrefix("moji_") {
+            try? FileManager.default.removeItem(at: file)
+        }
+    }
+
     private static func writeTempFile(data: Data, ext: String) -> URL? {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("moji_\(UUID().uuidString).\(ext)")
