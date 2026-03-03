@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 
+@MainActor
 @Observable
 class SearchState {
     var keyword = ""
@@ -41,15 +42,12 @@ class SearchState {
                 data = await ImageCacheService.shared.data(for: sticker.url)
             }
             guard let data else { return }
-            await MainActor.run {
-                performCopy(data: data, index: index)
-            }
+            performCopy(data: data, index: index)
         }
     }
 
     // MARK: - Private
 
-    @MainActor
     private func performCopy(data: Data, index: Int) {
         let animType = ImageProcessor.detectAnimation(data)
         switch animType {
@@ -65,7 +63,6 @@ class SearchState {
         showCopyFeedback(for: index)
     }
 
-    @MainActor
     private func showCopyFeedback(for index: Int) {
         copyFeedbackIndex = index
         Task {

@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import CryptoKit
 
 actor ImageCacheService {
     static let shared = ImageCacheService()
@@ -33,9 +34,8 @@ actor ImageCacheService {
     }
 
     private func diskPath(for url: URL) -> URL {
-        let hash = url.absoluteString.data(using: .utf8)!
-            .map { String(format: "%02x", $0) }.joined()
-            .prefix(40)
-        return cacheDir.appendingPathComponent(String(hash))
+        let digest = SHA256.hash(data: Data(url.absoluteString.utf8))
+        let hash = digest.map { String(format: "%02x", $0) }.joined()
+        return cacheDir.appendingPathComponent(hash)
     }
 }

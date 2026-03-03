@@ -9,6 +9,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        ClipboardService.cleanupTempFiles()
         setupSearchPanel()
         setupIPC()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
@@ -32,7 +33,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Setup
 
     private func setupSearchPanel() {
-        let panel = NSPanel(
+        let panel = KeyablePanel(
             contentRect: NSRect(x: 0, y: 0, width: 380, height: 520),
             styleMask: [.nonactivatingPanel, .fullSizeContentView, .hudWindow],
             backing: .buffered,
@@ -47,6 +48,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         panel.animationBehavior = .utilityWindow
         panel.backgroundColor = .clear
         panel.isOpaque = false
+        panel.becomesKeyOnlyIfNeeded = false
 
         let hostingView = NSHostingView(rootView: SearchWindow())
         panel.contentView = hostingView
@@ -97,6 +99,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let y = screenFrame.maxY - panel.frame.height - 40
         panel.setFrameOrigin(NSPoint(x: x, y: y))
     }
+}
+
+// MARK: - KeyablePanel
+
+/// NSPanel subclass that always accepts key status for reliable keyboard input
+class KeyablePanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
 }
 
 extension Notification.Name {

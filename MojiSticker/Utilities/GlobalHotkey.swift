@@ -24,7 +24,7 @@ class GlobalHotkey {
         let mask: CGEventMask = (1 << CGEventType.keyDown.rawValue)
 
         let callback: CGEventTapCallBack = { proxy, type, event, refcon in
-            guard let refcon else { return Unmanaged.passRetained(event) }
+            guard let refcon else { return Unmanaged.passUnretained(event) }
             let hotkey = Unmanaged<GlobalHotkey>.fromOpaque(refcon).takeUnretainedValue()
 
             if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
@@ -32,10 +32,10 @@ class GlobalHotkey {
                     CGEvent.tapEnable(tap: tap, enable: true)
                     hotkey.isTapEnabled = true
                 }
-                return Unmanaged.passRetained(event)
+                return Unmanaged.passUnretained(event)
             }
 
-            guard type == .keyDown else { return Unmanaged.passRetained(event) }
+            guard type == .keyDown else { return Unmanaged.passUnretained(event) }
 
             let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
             let flags = event.flags
@@ -45,7 +45,7 @@ class GlobalHotkey {
                     DispatchQueue.main.async { binding.handler() }
                 }
             }
-            return Unmanaged.passRetained(event)
+            return Unmanaged.passUnretained(event)
         }
 
         let refcon = Unmanaged.passUnretained(self).toOpaque()
