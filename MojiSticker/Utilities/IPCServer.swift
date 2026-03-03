@@ -21,13 +21,11 @@ class IPCServer {
 
         var addr = sockaddr_un()
         addr.sun_family = sa_family_t(AF_UNIX)
-        let pathBytes = socketPath.utf8CString
-        let maxLen = MemoryLayout.size(ofValue: addr.sun_path)
-        withUnsafeMutablePointer(to: &addr.sun_path) { tuplePtr in
-            tuplePtr.withMemoryRebound(to: CChar.self, capacity: maxLen) { dest in
-                for i in 0..<min(pathBytes.count, maxLen - 1) {
-                    dest[i] = pathBytes[i]
-                }
+        let pathCString = socketPath.utf8CString
+        withUnsafeMutableBytes(of: &addr) { buf in
+            let sunPathOffset = 2 // sun_len (UInt8) + sun_family (UInt8)
+            for i in 0..<min(pathCString.count, 104) {
+                buf[sunPathOffset + i] = UInt8(bitPattern: pathCString[i])
             }
         }
 
