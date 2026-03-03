@@ -17,6 +17,16 @@ struct SearchWindow: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .onAppear { isSearchFocused = true }
+        .onKeyPress(.escape) {
+            NSApp.keyWindow?.close()
+            return .handled
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .mojiIPCSearch)) { note in
+            if let keyword = note.object as? String {
+                searchText = keyword
+                performSearch()
+            }
+        }
     }
 
     // MARK: - Search Bar
