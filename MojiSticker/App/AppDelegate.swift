@@ -9,8 +9,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
-        ClipboardService.cleanupTempFiles()
+        DispatchQueue.global(qos: .utility).async {
+            ClipboardService.cleanupTempFiles()
+        }
         migrateCookieStorage()
+        Task { await ImageCacheService.shared.scheduleDiskCleanup() }
         setupStatusItem()
         setupSearchPanel()
         setupIPC()

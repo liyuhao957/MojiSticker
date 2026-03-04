@@ -5,9 +5,10 @@ struct StickerCell: View {
     let index: Int
     let isCopyFeedback: Bool
     let onTap: () -> Void
-    let onHover: (Bool, Data?) -> Void
+    let onHover: (Bool, Data?, URL) -> Void
 
     @State private var imageData: Data?
+    @State private var animType: ImageProcessor.AnimationType = .none
     @State private var frames: [(image: CGImage, duration: TimeInterval)]?
     @State private var currentFrame = 0
     @State private var isHovering = false
@@ -32,7 +33,7 @@ struct StickerCell: View {
         .onTapGesture { onTap() }
         .onHover { hovering in
             isHovering = hovering
-            onHover(hovering, imageData)
+            onHover(hovering, imageData, sticker.url)
             handleHoverAnimation(hovering)
         }
         .task { await loadImage() }
@@ -59,18 +60,15 @@ struct StickerCell: View {
 
     @ViewBuilder
     private var animationBadge: some View {
-        if let data = imageData {
-            let animType = ImageProcessor.detectAnimation(data)
-            if animType != .none {
-                Text(animType == .gif ? "GIF" : "动图")
-                    .font(.system(size: 8, weight: .bold))
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 3)
-                    .padding(.vertical, 1)
-                    .background(.black.opacity(0.5))
-                    .clipShape(RoundedRectangle(cornerRadius: 3))
-                    .padding(2)
-            }
+        if animType != .none {
+            Text(animType == .gif ? "GIF" : "动图")
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 3)
+                .padding(.vertical, 1)
+                .background(.black.opacity(0.5))
+                .clipShape(RoundedRectangle(cornerRadius: 3))
+                .padding(2)
         }
     }
 
@@ -94,9 +92,19 @@ struct StickerCell: View {
                 // Silently ignore cancelled/network errors
             }
         }
-        // Extract frames if animated
-        if let data = imageData, ImageProcessor.detectAnimation(data) != .none {
-            self.frames = ImageProcessor.extractFrames(from: data)
+        guard let data = imageData, !Task.isCancelled else { return }
+
+        // Detect animation type once and cache it
+        let detected = ImageProcessor.detectAnimation(data)
+        self.animType = detected
+
+        // Extract frames via FrameDecodeService (cached + concurrent-limited)
+        if detected != .none {
+            let decoded = await FrameDecodeService.shared.frames(
+                for: sticker.url, data: data
+            )
+            guard !Task.isCancelled else { return }
+            self.frames = decoded
         }
     }
 

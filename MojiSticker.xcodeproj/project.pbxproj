@@ -23,6 +23,7 @@
 		CBA735BA56D1A6B015E9AD7B /* DouyinResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDD089561FA7F82C6BC6CE42 /* DouyinResponse.swift */; };
 		CED05682F66A18FBD4CCBE0C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED38EE49170ABDC6038A2692 /* AppDelegate.swift */; };
 		D20607DDC39ADC48F375B71F /* StickerGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64C7C6245BD5DBF807C0540E /* StickerGridView.swift */; };
+		E46E968B14EEEAEC4E67086E /* FrameDecodeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C2345E30E4933AB5AE157E9 /* FrameDecodeService.swift */; };
 		EE55872E3F51760870410388 /* DouyinCookieManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A36EB98F0D6863A57F31DAC /* DouyinCookieManager.swift */; };
 		F00EE592FDE8A0B4B0DEE24F /* DouyinAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9A53994640DE85245C6CC0 /* DouyinAPI.swift */; };
 /* End PBXBuildFile section */
@@ -38,6 +39,7 @@
 		6F9A53994640DE85245C6CC0 /* DouyinAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DouyinAPI.swift; sourceTree = "<group>"; };
 		77FE3DC3923309D648B417B8 /* ImageCacheService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageCacheService.swift; sourceTree = "<group>"; };
 		7B8AC196F2B5EAABB80EA7AA /* ClipboardService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardService.swift; sourceTree = "<group>"; };
+		7C2345E30E4933AB5AE157E9 /* FrameDecodeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameDecodeService.swift; sourceTree = "<group>"; };
 		7E659FD67E74968FC3839329 /* MojiSticker.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MojiSticker.entitlements; sourceTree = "<group>"; };
 		9022AB926A1414F5C245C767 /* MojiStickerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MojiStickerApp.swift; sourceTree = "<group>"; };
 		99D9E53691D64203789A3B6E /* PreviewOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewOverlay.swift; sourceTree = "<group>"; };
@@ -68,6 +70,7 @@
 				7B8AC196F2B5EAABB80EA7AA /* ClipboardService.swift */,
 				6F9A53994640DE85245C6CC0 /* DouyinAPI.swift */,
 				9A36EB98F0D6863A57F31DAC /* DouyinCookieManager.swift */,
+				7C2345E30E4933AB5AE157E9 /* FrameDecodeService.swift */,
 				77FE3DC3923309D648B417B8 /* ImageCacheService.swift */,
 			);
 			path = Services;
@@ -202,6 +205,7 @@
 				F00EE592FDE8A0B4B0DEE24F /* DouyinAPI.swift in Sources */,
 				EE55872E3F51760870410388 /* DouyinCookieManager.swift in Sources */,
 				CBA735BA56D1A6B015E9AD7B /* DouyinResponse.swift in Sources */,
+				E46E968B14EEEAEC4E67086E /* FrameDecodeService.swift in Sources */,
 				BC7E6A97A384554412FA7C33 /* GlobalHotkey.swift in Sources */,
 				27552109F917BE96BB04CC30 /* IPCServer.swift in Sources */,
 				A3C2E90E3589543FF3FBEFB6 /* ImageCacheService.swift in Sources */,

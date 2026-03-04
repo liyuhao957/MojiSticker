@@ -14,10 +14,10 @@ struct StickerGridView: View {
                         index: index,
                         isCopyFeedback: state.copyFeedbackIndex == index,
                         onTap: { state.copySticker(at: index) },
-                        onHover: { hovering, data in
+                        onHover: { hovering, data, url in
                             if hovering, let data {
                                 let mouseLocation = NSEvent.mouseLocation
-                                PreviewPanelController.shared.show(data: data, at: mouseLocation)
+                                PreviewPanelController.shared.show(data: data, url: url, at: mouseLocation)
                             } else {
                                 PreviewPanelController.shared.hide()
                             }
