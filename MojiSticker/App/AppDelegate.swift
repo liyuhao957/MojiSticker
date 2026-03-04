@@ -6,7 +6,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var searchPanel: NSPanel?
     private var globalHotkey: GlobalHotkey?
     private var ipcServer: IPCServer?
-    private var watchdogTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -15,14 +14,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupStatusItem()
         setupSearchPanel()
         setupIPC()
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.setupGlobalHotkeys()
-        }
+        setupGlobalHotkeys()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         globalHotkey?.stop()
-        watchdogTimer?.invalidate()
         ipcServer?.stop()
     }
 
@@ -105,12 +101,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             modifiers: [.maskCommand, .maskShift],
             handler: { NSApplication.shared.terminate(nil) }
         )
-        _ = globalHotkey?.start()
 
-        watchdogTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
-            guard let hotkey = self?.globalHotkey else { return }
-            if !hotkey.isRunning { _ = hotkey.start() }
-            else if !hotkey.isTapEnabled { hotkey.ensureEnabled() }
+        if globalHotkey?.start() != true {
+            NSLog("[MojiSticker] 全局快捷键注册失败")
         }
     }
 
