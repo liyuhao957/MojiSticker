@@ -1,45 +1,62 @@
 import Foundation
-import Security
 
 struct DouyinCookieManager {
-    private static let service = "com.moji.MojiSticker.douyin"
-    private static let account = "cookies"
+    private static var storageDir: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".moji")
+    }
+
+    private static var storageURL: URL {
+        let dir = storageDir
+        try? FileManager.default.createDirectory(
+            at: dir,
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
+        return dir.appendingPathComponent("douyin_cookies.json")
+    }
+
+    private static func ensureDirPermissions() {
+        try? FileManager.default.setAttributes(
+            [.posixPermissions: 0o700],
+            ofItemAtPath: storageDir.path
+        )
+    }
 
     static func save(_ cookies: [String: String]) -> Bool {
         guard let data = try? JSONEncoder().encode(cookies) else { return false }
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-        ]
-        SecItemDelete(query as CFDictionary)
-        var addQuery = query
-        addQuery[kSecValueData as String] = data
-        return SecItemAdd(addQuery as CFDictionary, nil) == errSecSuccess
+        do {
+            try data.write(to: storageURL, options: .atomic)
+            try FileManager.default.setAttributes(
+                [.posixPermissions: 0o600],
+                ofItemAtPath: storageURL.path
+            )
+            ensureDirPermissions()
+            // Best-effort: exclude from backup
+            var url = storageURL
+            var resourceValues = URLResourceValues()
+            resourceValues.isExcludedFromBackup = true
+            try? url.setResourceValues(resourceValues)
+            return true
+        } catch {
+            return false
+        }
     }
 
     static func load() -> [String: String] {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            kSecReturnData as String: true,
-        ]
-        var result: AnyObject?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data,
+        guard let data = try? Data(contentsOf: storageURL),
               let cookies = try? JSONDecoder().decode([String: String].self, from: data)
         else { return [:] }
         return cookies
     }
 
     static func clear() -> Bool {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-        ]
-        return SecItemDelete(query as CFDictionary) == errSecSuccess
+        do {
+            try FileManager.default.removeItem(at: storageURL)
+            return true
+        } catch {
+            return false
+        }
     }
 
     static func validate(_ cookies: [String: String]) -> (Bool, String) {
@@ -52,10 +69,9 @@ struct DouyinCookieManager {
 
 extension DouyinCookieManager {
     /// Migrate cookies from the legacy Python format (~/.moji/douyin_cookies.json)
+    /// Legacy format wraps cookies in {"data": "<base64>"}, new format is plain JSON.
     static func migrateFromLegacy() -> Bool {
-        let legacyPath = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".moji/douyin_cookies.json")
-        guard let data = try? Data(contentsOf: legacyPath),
+        guard let data = try? Data(contentsOf: storageURL),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let encoded = json["data"] as? String,
               let decoded = Data(base64Encoded: encoded),

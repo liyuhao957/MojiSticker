@@ -20,6 +20,18 @@ struct EmoticonData: Decodable {
         case nextCursor = "next_cursor"
         case stickerList = "sticker_list"
     }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        hasMore = try container.decode(Bool.self, forKey: .hasMore)
+        stickerList = try container.decodeIfPresent([Sticker].self, forKey: .stickerList)
+        // API returns next_cursor as Int or String depending on context
+        if let intValue = try? container.decode(Int.self, forKey: .nextCursor) {
+            nextCursor = String(intValue)
+        } else {
+            nextCursor = try container.decode(String.self, forKey: .nextCursor)
+        }
+    }
 }
 
 struct Sticker: Decodable {

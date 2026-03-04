@@ -3,11 +3,16 @@ import SwiftUI
 struct SearchWindow: View {
     @State private var searchState = SearchState()
     @State private var searchText = ""
+    @State private var showSettings = false
     @FocusState private var isSearchFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
             searchBar
+            if showSettings {
+                CookieSettingsPanel(isExpanded: $showSettings)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
             errorBanner
             StickerGridView(state: searchState)
         }
@@ -18,6 +23,10 @@ struct SearchWindow: View {
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .onAppear { isSearchFocused = true }
         .onKeyPress(.escape) {
+            if showSettings {
+                withAnimation(.easeInOut(duration: 0.2)) { showSettings = false }
+                return .handled
+            }
             NSApp.keyWindow?.close()
             return .handled
         }
@@ -38,12 +47,24 @@ struct SearchWindow: View {
                 .font(.system(size: 15))
                 .focused($isSearchFocused)
                 .onSubmit { performSearch() }
-                .padding(.horizontal, 16)
+                .padding(.leading, 16)
                 .padding(.vertical, 12)
 
             Button(action: performSearch) {
-                Text("\u{1F50D}")
-                    .font(.system(size: 16))
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 14))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showSettings.toggle()
+                }
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 14))
+                    .foregroundStyle(showSettings ? .primary : .secondary)
             }
             .buttonStyle(.plain)
             .padding(.trailing, 12)

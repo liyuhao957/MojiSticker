@@ -1,10 +1,10 @@
 import AppKit
 
 struct ClipboardService {
-    static func copyStatic(image: NSImage) {
+    static func copyStatic(pngData: Data) {
         let pb = NSPasteboard.general
         pb.clearContents()
-        pb.writeObjects([image])
+        pb.setData(pngData, forType: .png)
     }
 
     static func copyAnimatedGIF(data: Data) {
@@ -23,6 +23,13 @@ struct ClipboardService {
         if let tempURL = writeTempFile(data: data, ext: "webp") {
             pb.setString(tempURL.absoluteString, forType: .fileURL)
         }
+    }
+
+    /// Fallback: copy NSImage directly (auto-negotiates pasteboard type)
+    static func copyNSImage(_ image: NSImage) {
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.writeObjects([image])
     }
 
     /// Remove stale moji_* temp files (call on app launch)
