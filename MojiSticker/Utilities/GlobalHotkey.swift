@@ -1,95 +1,143 @@
-import Foundation
+import Carbon
 import Cocoa
 
 class GlobalHotkey {
     struct Binding {
-        let keyCode: CGKeyCode
-        let modifiers: CGEventFlags
+        let keyCode: UInt32
+        let carbonModifiers: UInt32
         let handler: () -> Void
+        var hotKeyRef: EventHotKeyRef?
     }
 
-    private var bindings: [Binding] = []
-    private var eventTap: CFMachPort?
-    private var runLoopSource: CFRunLoopSource?
-    private var thread: Thread?
+    private static let signature = OSType(0x4D4F4A49) // "MOJI"
+
+    private var bindings: [UInt32: Binding] = [:]
+    private var nextID: UInt32 = 1
+    private var eventHandler: EventHandlerRef?
 
     private(set) var isRunning = false
-    private(set) var isTapEnabled = false
 
     func register(keyCode: CGKeyCode, modifiers: CGEventFlags, handler: @escaping () -> Void) {
-        bindings.append(Binding(keyCode: keyCode, modifiers: modifiers, handler: handler))
+        let id = nextID
+        nextID += 1
+        bindings[id] = Binding(
+            keyCode: UInt32(keyCode),
+            carbonModifiers: Self.carbonModifiers(from: modifiers),
+            handler: handler
+        )
     }
 
     func start() -> Bool {
-        let mask: CGEventMask = (1 << CGEventType.keyDown.rawValue)
+        guard !isRunning else { return true }
 
-        let callback: CGEventTapCallBack = { proxy, type, event, refcon in
-            guard let refcon else { return Unmanaged.passUnretained(event) }
-            let hotkey = Unmanaged<GlobalHotkey>.fromOpaque(refcon).takeUnretainedValue()
+        if !installEventHandler() { return false }
 
-            if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-                if let tap = hotkey.eventTap {
-                    CGEvent.tapEnable(tap: tap, enable: true)
-                    hotkey.isTapEnabled = true
-                }
-                return Unmanaged.passUnretained(event)
+        var allRegistered = true
+        for id in bindings.keys {
+            guard var binding = bindings[id] else { continue }
+            let hotKeyID = EventHotKeyID(signature: Self.signature, id: id)
+            var ref: EventHotKeyRef?
+            let status = RegisterEventHotKey(
+                binding.keyCode,
+                binding.carbonModifiers,
+                hotKeyID,
+                GetApplicationEventTarget(),
+                0,
+                &ref
+            )
+            if status == noErr {
+                binding.hotKeyRef = ref
+                bindings[id] = binding
+            } else {
+                NSLog("[MojiSticker] 注册快捷键失败 id=%d status=%d", id, status)
+                allRegistered = false
             }
-
-            guard type == .keyDown else { return Unmanaged.passUnretained(event) }
-
-            let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
-            let flags = event.flags
-
-            for binding in hotkey.bindings {
-                if keyCode == binding.keyCode && flags.contains(binding.modifiers) {
-                    DispatchQueue.main.async { binding.handler() }
-                }
-            }
-            return Unmanaged.passUnretained(event)
         }
 
-        let refcon = Unmanaged.passUnretained(self).toOpaque()
-        guard let tap = CGEvent.tapCreate(
-            tap: .cgSessionEventTap,
-            place: .headInsertEventTap,
-            options: .listenOnly,
-            eventsOfInterest: mask,
-            callback: callback,
-            userInfo: refcon
-        ) else { return false }
-
-        self.eventTap = tap
-        self.runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
-        self.isTapEnabled = true
-        self.isRunning = true
-
-        thread = Thread { [weak self] in
-            guard let self, let source = self.runLoopSource else { return }
-            CFRunLoopAddSource(CFRunLoopGetCurrent(), source, .commonModes)
-            CGEvent.tapEnable(tap: tap, enable: true)
-            CFRunLoopRun()
-            self.isRunning = false
-        }
-        thread?.start()
-        return true
-    }
-
-    func ensureEnabled() {
-        guard let tap = eventTap else { return }
-        CGEvent.tapEnable(tap: tap, enable: true)
-        isTapEnabled = true
+        isRunning = allRegistered || bindings.values.contains { $0.hotKeyRef != nil }
+        return isRunning
     }
 
     func stop() {
-        if let tap = eventTap {
-            CGEvent.tapEnable(tap: tap, enable: false)
+        for id in bindings.keys {
+            guard var binding = bindings[id] else { continue }
+            if let ref = binding.hotKeyRef {
+                UnregisterEventHotKey(ref)
+                binding.hotKeyRef = nil
+                bindings[id] = binding
+            }
         }
-        if let source = runLoopSource {
-            CFRunLoopSourceInvalidate(source)
+        if let handler = eventHandler {
+            RemoveEventHandler(handler)
+            eventHandler = nil
         }
-        eventTap = nil
-        runLoopSource = nil
         isRunning = false
-        isTapEnabled = false
+    }
+
+    // MARK: - Private
+
+    private func installEventHandler() -> Bool {
+        var eventType = EventTypeSpec(
+            eventClass: OSType(kEventClassKeyboard),
+            eventKind: UInt32(kEventHotKeyPressed)
+        )
+        let refcon = Unmanaged.passUnretained(self).toOpaque()
+        let status = InstallEventHandler(
+            GetApplicationEventTarget(),
+            carbonHotKeyHandler,
+            1,
+            &eventType,
+            refcon,
+            &eventHandler
+        )
+        if status != noErr {
+            NSLog("[MojiSticker] InstallEventHandler 失败 status=%d", status)
+        }
+        return status == noErr
+    }
+
+    private static func carbonModifiers(from flags: CGEventFlags) -> UInt32 {
+        var mods: UInt32 = 0
+        if flags.contains(.maskCommand) { mods |= UInt32(cmdKey) }
+        if flags.contains(.maskShift) { mods |= UInt32(shiftKey) }
+        if flags.contains(.maskAlternate) { mods |= UInt32(optionKey) }
+        if flags.contains(.maskControl) { mods |= UInt32(controlKey) }
+        return mods
+    }
+}
+
+// C function — must be top-level, non-capturing
+private func carbonHotKeyHandler(
+    _: EventHandlerCallRef?,
+    event: EventRef?,
+    userData: UnsafeMutableRawPointer?
+) -> OSStatus {
+    guard let event, let userData else { return OSStatus(eventNotHandledErr) }
+    let hotkey = Unmanaged<GlobalHotkey>.fromOpaque(userData).takeUnretainedValue()
+
+    var hotKeyID = EventHotKeyID()
+    let status = GetEventParameter(
+        event,
+        EventParamName(kEventParamDirectObject),
+        EventParamType(typeEventHotKeyID),
+        nil,
+        MemoryLayout<EventHotKeyID>.size,
+        nil,
+        &hotKeyID
+    )
+    guard status == noErr else { return status }
+
+    // Access bindings via the callback's hotkey reference
+    // Use Mirror or a helper — but simpler: store a static dispatch table
+    // Actually, just dispatch on main and let the hotkey resolve
+    DispatchQueue.main.async {
+        hotkey.dispatch(id: hotKeyID.id)
+    }
+    return noErr
+}
+
+extension GlobalHotkey {
+    fileprivate func dispatch(id: UInt32) {
+        bindings[id]?.handler()
     }
 }
