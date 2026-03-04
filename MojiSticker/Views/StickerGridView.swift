@@ -19,7 +19,7 @@ struct StickerGridView: View {
                                 let mouseLocation = NSEvent.mouseLocation
                                 PreviewPanelController.shared.show(data: data, url: url, at: mouseLocation)
                             } else {
-                                PreviewPanelController.shared.hide()
+                                PreviewPanelController.shared.scheduleHide()
                             }
                         }
                     )

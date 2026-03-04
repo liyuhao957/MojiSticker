@@ -1,86 +1,73 @@
-# 性能优化设计文档
+# 设计文档：修复 Hover 预览大图闪烁消失问题
 
 ## 目标
 
-优化 MojiSticker 的启动性能和搜索/浏览过程中的性能，减少主线程阻塞和不必要的重复计算。
+- 鼠标 hover 到某个小图（72x72 cell）上后，只要鼠标还在该 cell 范围内移动，预览大图始终保持显示
+- 鼠标移出 cell 范围后，预览正常消失
 
 ## 非目标
 
-- 不改变 UI 外观或交互方式
-- 不改变 API 调用逻辑
-- 不改变缓存存储路径
-- 不添加 os_signpost 等性能监控基础设施（小型工具，优化效果通过体感判断）
+- 不改变预览面板的视觉样式或位置逻辑
+- 不改变点击复制的行为
 
-## 问题分析与方案
+## 根因分析
 
-### 1. 启动阶段主线程阻塞
+当前实现存在三个问题：
 
-**问题**: `applicationDidFinishLaunching` 中同步执行文件 I/O 操作：
-- `ClipboardService.cleanupTempFiles()` — 枚举临时目录并删除文件
-- `migrateCookieStorage()` — 读取/验证 cookie 文件
+1. **NSPanel 可能干扰 hit-testing**：浮动面板出现在 cell 附近时，可能拦截鼠标事件，导致 SwiftUI `.onHover` 收到错误的 `false`
+2. **立即隐藏无容错**：`StickerGridView` 中 `onHover(false)` 直接调用 `hide()`，`.onHover` 任何一次抖动都会导致预览消失
+3. **show() 非幂等**：`show()` 开头无条件调用 `hide()` 再重建面板，同一 sticker 的 hover 抖动（false→true）会销毁/重建面板产生闪烁
 
-**方案**:
-- `cleanupTempFiles()` 移到后台队列异步执行（不影响功能）
-- `migrateCookieStorage()` 保持同步执行（搜索依赖 cookie，异步化会引入竞态）
+## 方案
 
-**修改文件**: `MojiSticker/App/AppDelegate.swift`
+### 1. NSPanel 设置 `ignoresMouseEvents = true`（PreviewOverlay.swift）
 
-### 2. 动画帧解码统一缓存与复用
+预览面板不需要接收鼠标事件。设置后鼠标事件穿透面板传递给下层 SwiftUI 视图，从根本上避免面板干扰 `.onHover` 判定。
 
-**问题**: 同一张动图的帧会被多次解码：
-- `StickerCell.loadImage()` 中提取帧用于 hover 动画
-- `PreviewContentView.startAnimationIfNeeded()` 中再次提取帧用于预览
+### 2. 幂等 show（PreviewOverlay.swift）
 
-`ImageProcessor.extractFrames()` 是 CPU 密集操作（解码每一帧），重复调用浪费大量 CPU。
+- 记录 `currentURL: URL?`，当 `show()` 的 URL 与当前一致时跳过重建，直接返回
+- 仅 URL 不同时才关闭旧面板、创建新面板
+- 这样 `.onHover` 抖动时重复 `show()` 不会销毁/重建面板
 
-注意：复制操作（`performCopy`）走的是 `resizeAnimatedImage` 路径，和浏览帧提取是不同的操作，不在本优化范围内。
+### 3. Debounced Hide + Generation Counter（PreviewOverlay.swift + StickerGridView.swift）
 
-**方案**: 新建 `FrameDecodeService`（actor），提供：
-- **帧缓存**：NSCache，key 为 URL，value 为帧数组。设置 countLimit（30）和 totalCostLimit（按 `width*height*4*frameCount` 估算 cost）
-- **并发控制**：waiter 队列 + 信号量（计数 3），acquireSlot 通过 withTaskCancellationHandler 支持取消清理
-- **取消支持**：nonisolated func 在调用方 task 上下文中执行解码，取消自然传播；等待队列中已取消的 task 自动从队列移除
-- **帧数硬限制**：复用现有 `extractFrames` 的 200 帧上限
+- 去掉现有的 `trackingTimer`（position-based 轮询），改用事件驱动
+- 新增 `hideGeneration: Int`，每次 `show()` 或 `cancelHide()` 时递增
+- **关键**：`show()` 最前面统一执行 `cancelHide + generation++`，然后再做 URL 幂等判断。确保同 URL 的 show 也能取消 pending hide
+- `scheduleHide()` 捕获当前 generation，延迟 200ms 后检查 generation 是否仍匹配，匹配才执行 `hide()`
+- `StickerGridView` 的 `onHover(false)` 改调 `scheduleHide()` 而非 `hide()`
 
-**修改文件**:
-- 新建 `MojiSticker/Services/FrameDecodeService.swift`
-- `MojiSticker/Views/StickerCell.swift` — 改为通过 FrameDecodeService 获取帧
-- `MojiSticker/Views/PreviewOverlay.swift` — 改为通过 FrameDecodeService 获取帧
+### 4. @MainActor 线程安全（PreviewOverlay.swift）
 
-### 3. StickerCell detectAnimation 重复调用
+- `PreviewPanelController` 标记 `@MainActor`，确保所有 NSPanel、Timer 操作都在主线程
 
-**问题**: `StickerCell` 中 `detectAnimation` 被多次调用：
-- `loadImage()` 结尾检查一次
-- `animationBadge` computed property 中每次重绘调用一次
+### 5. 应用 / 窗口生命周期兜底（PreviewOverlay.swift）
 
-**方案**: 在 `loadImage()` 中一次性检测并缓存动画类型到 `@State` 变量，`animationBadge` 使用缓存值。
+- 监听 `NSApplication.didResignActiveNotification`，触发时强制 `hide()`
+- 监听 `NSWorkspace.activeSpaceDidChangeNotification`，切换 Space 时强制 `hide()`
+- 防止 app 失焦或切换桌面后预览面板悬挂
 
-**修改文件**: `MojiSticker/Views/StickerCell.swift`
+### 6. 数据源突变兜底（StickerCell.swift + PreviewOverlay.swift）
 
-### 4. 磁盘缓存无限增长
+- `PreviewPanelController` 新增 `hideIfShowing(url:)` 方法
+- `StickerCell.onDisappear` 中调用 `PreviewPanelController.shared.hideIfShowing(url: sticker.url)`
+- 确保搜索结果刷新、cell 被移除时不会留下悬挂的预览面板
 
-**问题**: `ImageCacheService` 的磁盘缓存目录 `~/.moji/cache` 没有大小限制或清理策略。
+## 要修改的文件
 
-**方案**: 启动时在后台延迟 5 秒执行磁盘缓存清理：
-- 枚举缓存目录，按文件修改时间排序
-- 如果总大小超过 200MB，删除最旧的文件直到降到 150MB 以下
-- 使用文件修改时间（我们自己写入的文件，时间可靠）
-
-**修改文件**: `MojiSticker/Services/ImageCacheService.swift`
-
-## 要修改的文件清单
-
-1. `MojiSticker/App/AppDelegate.swift` — cleanupTempFiles 异步化
-2. `MojiSticker/Services/FrameDecodeService.swift` — 新建，帧解码服务
-3. `MojiSticker/Services/ImageCacheService.swift` — 磁盘缓存清理
-4. `MojiSticker/Views/StickerCell.swift` — 使用 FrameDecodeService + detectAnimation 缓存
-5. `MojiSticker/Views/PreviewOverlay.swift` — 使用 FrameDecodeService
+| 文件 | 改动内容 |
+|------|----------|
+| `MojiSticker/Views/PreviewOverlay.swift` | `@MainActor`、`ignoresMouseEvents`、幂等 show、`scheduleHide` + generation、去掉 trackingTimer、监听 app 失焦 |
+| `MojiSticker/Views/StickerGridView.swift` | `onHover(false)` 改用 `scheduleHide()` |
+| `MojiSticker/Views/StickerCell.swift` | `onDisappear` 中加入条件隐藏 |
 
 ## 边界情况
 
-- 帧缓存内存控制：NSCache 的 countLimit + totalCostLimit 双重限制，系统内存压力时自动淘汰
-- 磁盘清理不阻塞启动：后台低优先级队列，延迟 5 秒执行
-- 帧缓存 key：使用 URL（CDN 静态资源 URL 不变，无需加 schema version）
-- 所有帧解码通过 FrameDecodeService 统一调度（nonisolated func），在调用方 task 上下文中执行
-- acquireSlot 支持取消清理：已取消的 waiter 自动从队列移除，不占用后续解码位
-- 解码完成后检查 Task.isCancelled，避免设置已过期的 state
-- 帧缓存提供隐式去重：第二次相同 URL 请求通常命中缓存，不重复解码
+- **鼠标在同一 cell 内移动**：`.onHover` 不变（或抖动后 200ms 内恢复），show 幂等 → 预览稳定
+- **鼠标从 cell A 移到 cell B**：cell A 的 `onHover(false)` 触发 `scheduleHide()`，cell B 的 `onHover(true)` 触发 `show(newURL)` → generation 递增 → 旧的 scheduleHide 失效 → 无缝切换
+- **鼠标离开所有 cell**：`onHover(false)` → `scheduleHide()` → 200ms 后 generation 匹配 → 隐藏
+- **app 失焦 / 切换 Space**：`didResignActiveNotification` → 强制 `hide()`
+- **滚动导致 cell 移出鼠标位置**：SwiftUI 自动触发 `onHover(false)` → `scheduleHide()` → 正常隐藏
+- **搜索结果刷新 / cell 被移除**：`StickerCell.onDisappear` → `hideIfShowing(url:)` → 条件隐藏
+- **切换 Space**：`activeSpaceDidChangeNotification` → 强制 `hide()`
