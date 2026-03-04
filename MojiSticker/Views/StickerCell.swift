@@ -37,7 +37,10 @@ struct StickerCell: View {
             handleHoverAnimation(hovering)
         }
         .task { await loadImage() }
-        .onDisappear { stopAnimation() }
+        .onDisappear {
+            stopAnimation()
+            PreviewPanelController.shared.hideIfShowing(url: sticker.url)
+        }
     }
 
     // MARK: - View Components

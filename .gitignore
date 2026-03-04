@@ -14,6 +14,12 @@ build/
 *.swp
 *~
 
+# Secrets & Credentials
+*.key
+*.pem
+*.p12
+.env
+
 # Swift Package Manager
 .build/
 Packages/

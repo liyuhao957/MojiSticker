@@ -7,11 +7,88 @@ class PreviewPanelController {
     static let shared = PreviewPanelController()
 
     private var panel: NSPanel?
-    private var trackingTimer: Timer?
+    private var currentURL: URL?
+    private var hideGeneration = 0
+
+    private init() {
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didResignActiveNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.hide()
+        }
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            self?.hide()
+        }
+    }
 
     func show(data: Data, url: URL, at screenPoint: NSPoint) {
-        hide()
+        // Always cancel pending hide and bump generation first
+        hideGeneration += 1
 
+        // Idempotent: same URL with panel already visible → update position only
+        if url == currentURL, let panel {
+            let pos = adjustPosition(
+                origin: screenPoint,
+                size: panel.frame.size,
+                offset: NSPoint(x: 12, y: -12)
+            )
+            panel.setFrameOrigin(pos)
+            return
+        }
+
+        // Different URL or no panel → close old and build new
+        closePanel()
+        currentURL = url
+
+        let built = buildPanel(data: data, url: url)
+        let hostingView = NSHostingView(rootView: built.contentView)
+        built.panel.contentView = hostingView
+        built.panel.setContentSize(hostingView.fittingSize)
+
+        let pos = adjustPosition(
+            origin: screenPoint,
+            size: hostingView.fittingSize,
+            offset: NSPoint(x: 12, y: -12)
+        )
+        built.panel.setFrameOrigin(pos)
+        built.panel.orderFront(nil)
+        self.panel = built.panel
+    }
+
+    func scheduleHide() {
+        let generation = hideGeneration
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+            guard let self, self.hideGeneration == generation else { return }
+            self.hide()
+        }
+    }
+
+    func hide() {
+        hideGeneration += 1
+        closePanel()
+        currentURL = nil
+    }
+
+    func hideIfShowing(url: URL) {
+        if currentURL == url {
+            hide()
+        }
+    }
+
+    // MARK: - Private
+
+    private func closePanel() {
+        panel?.close()
+        panel = nil
+    }
+
+    private func buildPanel(
+        data: Data, url: URL
+    ) -> (panel: NSPanel, contentView: PreviewContentView) {
         let maxSide: CGFloat = 320
         let animType = ImageProcessor.detectAnimation(data)
 
@@ -35,42 +112,9 @@ class PreviewPanelController {
         panel.hasShadow = true
         panel.titleVisibility = .hidden
         panel.titlebarAppearsTransparent = true
+        panel.ignoresMouseEvents = true
 
-        let hostingView = NSHostingView(rootView: previewView)
-        panel.contentView = hostingView
-        panel.setContentSize(hostingView.fittingSize)
-
-        let pos = adjustPosition(
-            origin: screenPoint,
-            size: hostingView.fittingSize,
-            offset: NSPoint(x: 12, y: -12)
-        )
-        panel.setFrameOrigin(pos)
-        panel.orderFront(nil)
-        self.panel = panel
-
-        trackingTimer = Timer.scheduledTimer(
-            withTimeInterval: 0.15,
-            repeats: true
-        ) { [weak self] _ in
-            self?.checkMousePosition()
-        }
-    }
-
-    func hide() {
-        trackingTimer?.invalidate()
-        trackingTimer = nil
-        panel?.close()
-        panel = nil
-    }
-
-    private func checkMousePosition() {
-        guard let panel else { return }
-        let mouseLocation = NSEvent.mouseLocation
-        let expandedFrame = panel.frame.insetBy(dx: -20, dy: -20)
-        if !expandedFrame.contains(mouseLocation) {
-            hide()
-        }
+        return (panel, previewView)
     }
 
     private func adjustPosition(
