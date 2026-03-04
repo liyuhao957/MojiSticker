@@ -9,7 +9,7 @@ class PreviewPanelController {
     private var panel: NSPanel?
     private var trackingTimer: Timer?
 
-    func show(data: Data, at screenPoint: NSPoint) {
+    func show(data: Data, url: URL, at screenPoint: NSPoint) {
         hide()
 
         let maxSide: CGFloat = 320
@@ -17,6 +17,7 @@ class PreviewPanelController {
 
         let previewView = PreviewContentView(
             data: data,
+            url: url,
             animationType: animType,
             maxSide: maxSide
         )
@@ -101,6 +102,7 @@ class PreviewPanelController {
 
 struct PreviewContentView: View {
     let data: Data
+    let url: URL
     let animationType: ImageProcessor.AnimationType
     let maxSide: CGFloat
 
@@ -125,14 +127,19 @@ struct PreviewContentView: View {
         .background(.ultraThickMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .shadow(color: .black.opacity(0.2), radius: 18, x: 0, y: 4)
-        .task { startAnimationIfNeeded() }
+        .task { await startAnimationIfNeeded() }
         .onDisappear { stopAnimation() }
     }
 
-    private func startAnimationIfNeeded() {
+    private func startAnimationIfNeeded() async {
         guard animationType != .none else { return }
-        guard let extractedFrames = ImageProcessor.extractFrames(from: data),
-              !extractedFrames.isEmpty else { return }
+
+        // Use FrameDecodeService for cached + deduplicated frame extraction
+        guard let extractedFrames = await FrameDecodeService.shared.frames(
+            for: url, data: data
+        ), !extractedFrames.isEmpty else { return }
+
+        guard !Task.isCancelled else { return }
         self.frames = extractedFrames
         let avgDuration = extractedFrames.map(\.duration).reduce(0, +)
             / Double(extractedFrames.count)
