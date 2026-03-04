@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
+    private var statusItem: NSStatusItem?
     private var searchPanel: NSPanel?
     private var globalHotkey: GlobalHotkey?
     private var ipcServer: IPCServer?
@@ -10,6 +11,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         ClipboardService.cleanupTempFiles()
+        migrateCookieStorage()
+        setupStatusItem()
         setupSearchPanel()
         setupIPC()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
@@ -25,12 +28,47 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func showSearchWindow() {
         guard let panel = searchPanel else { return }
+        panel.hidesOnDeactivate = false
         positionPanel(panel)
-        panel.makeKeyAndOrderFront(nil)
-        NSApp.activate()
+        panel.orderFrontRegardless()
+        panel.makeKey()
+        NSApp.activate(ignoringOtherApps: true)
+        DispatchQueue.main.async {
+            panel.hidesOnDeactivate = true
+        }
+    }
+
+    // MARK: - Migration
+
+    private func migrateCookieStorage() {
+        let existing = DouyinCookieManager.load()
+        let (valid, _) = DouyinCookieManager.validate(existing)
+        if valid { return }
+
+        let migrated = UserDefaults.standard.bool(forKey: "legacyMigrationDone")
+        if migrated { return }
+
+        if DouyinCookieManager.migrateFromLegacy() {
+            UserDefaults.standard.set(true, forKey: "legacyMigrationDone")
+        }
     }
 
     // MARK: - Setup
+
+    private func setupStatusItem() {
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        guard let button = statusItem?.button else { return }
+        button.image = NSImage(
+            systemSymbolName: "face.smiling",
+            accessibilityDescription: "MojiSticker"
+        )
+        button.action = #selector(statusItemClicked)
+        button.target = self
+    }
+
+    @objc private func statusItemClicked() {
+        showSearchWindow()
+    }
 
     private func setupSearchPanel() {
         let panel = KeyablePanel(
@@ -57,13 +95,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setupGlobalHotkeys() {
         globalHotkey = GlobalHotkey()
-        // Cmd+Shift+K (keyCode 40)
         globalHotkey?.register(
             keyCode: 40,
             modifiers: [.maskCommand, .maskShift],
             handler: { [weak self] in self?.showSearchWindow() }
         )
-        // Cmd+Shift+E (keyCode 14)
         globalHotkey?.register(
             keyCode: 14,
             modifiers: [.maskCommand, .maskShift],
@@ -103,7 +139,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 // MARK: - KeyablePanel
 
-/// NSPanel subclass that always accepts key status for reliable keyboard input
 class KeyablePanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }

@@ -73,8 +73,22 @@ actor DouyinAPI {
         _ request: URLRequest,
         attempt: Int
     ) async throws -> (urls: [URL], nextCursor: String, hasMore: Bool) {
-        let (data, _) = try await session.data(for: request)
-        let response = try JSONDecoder().decode(DouyinResponse.self, from: data)
+        let (data, httpResponse) = try await session.data(for: request)
+
+        if let http = httpResponse as? HTTPURLResponse, http.statusCode != 200 {
+            try mapHTTPStatus(http.statusCode)
+        }
+
+        let response: DouyinResponse
+        do {
+            response = try JSONDecoder().decode(DouyinResponse.self, from: data)
+        } catch {
+            // Non-JSON response (HTML blocked page) means cookie is missing/invalid
+            if data.first == UInt8(ascii: "<") {
+                throw APIError.cookieExpired
+            }
+            throw APIError.invalidResponse
+        }
 
         switch response.statusCode {
         case 0: break
@@ -99,6 +113,15 @@ actor DouyinAPI {
     private func shouldRetryRateLimit(_ error: APIError) -> Bool {
         if case .rateLimited = error { return true }
         return false
+    }
+
+    private func mapHTTPStatus(_ statusCode: Int) throws {
+        switch statusCode {
+        case 200: return
+        case 401, 403: throw APIError.cookieExpired
+        case 429: throw APIError.rateLimited
+        default: throw APIError.invalidResponse
+        }
     }
 
     private func buildRequest(

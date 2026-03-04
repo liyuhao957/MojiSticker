@@ -13,6 +13,7 @@ class SearchState {
 
     private var cursor = "0"
     private var currentTask: Task<Void, Never>?
+    private var copyRequestId = 0
     private let api = DouyinAPI()
 
     func search(_ keyword: String) {
@@ -34,6 +35,10 @@ class SearchState {
     func copySticker(at index: Int) {
         guard index < stickers.count else { return }
         let sticker = stickers[index]
+        copyRequestId += 1
+        let requestId = copyRequestId
+        showCopyFeedback(for: index)
+
         Task {
             let data: Data?
             if let existing = sticker.imageData {
@@ -42,25 +47,60 @@ class SearchState {
                 data = await ImageCacheService.shared.data(for: sticker.url)
             }
             guard let data else { return }
-            performCopy(data: data, index: index)
+            await performCopy(data: data, requestId: requestId)
         }
     }
 
     // MARK: - Private
 
-    private func performCopy(data: Data, index: Int) {
+    private func performCopy(data: Data, requestId: Int) async {
         let animType = ImageProcessor.detectAnimation(data)
-        switch animType {
-        case .gif:
-            ClipboardService.copyAnimatedGIF(data: data)
-        case .webp:
-            ClipboardService.copyAnimatedWebP(data: data)
-        case .none:
-            if let image = NSImage(data: data) {
-                ClipboardService.copyStatic(image: image)
-            }
+
+        enum CopyPayload {
+            case png(Data)
+            case gif(Data)
+            case webp(Data)
+            case nsImage(NSImage)
         }
-        showCopyFeedback(for: index)
+
+        let payload: CopyPayload? = await Task.detached {
+            switch animType {
+            case .gif:
+                switch ImageProcessor.resizeAnimatedImage(data: data) {
+                case .gif(let d): return .gif(d)
+                case .png(let d): return .png(d)
+                case nil: return .gif(data)
+                }
+            case .webp:
+                switch ImageProcessor.resizeAnimatedImage(data: data) {
+                case .gif(let d): return .gif(d)
+                case .png(let d): return .png(d)
+                case nil: return .webp(data) // keep original WebP type
+                }
+            case .none:
+                if let d = ImageProcessor.resizeStaticImage(data: data) {
+                    return .png(d)
+                }
+                // Fallback: use NSImage for universal pasteboard support
+                if let img = NSImage(data: data) {
+                    return .nsImage(img)
+                }
+                return nil
+            }
+        }.value
+
+        guard copyRequestId == requestId, let payload else { return }
+
+        switch payload {
+        case .gif(let d):
+            ClipboardService.copyAnimatedGIF(data: d)
+        case .webp(let d):
+            ClipboardService.copyAnimatedWebP(data: d)
+        case .png(let d):
+            ClipboardService.copyStatic(pngData: d)
+        case .nsImage(let img):
+            ClipboardService.copyNSImage(img)
+        }
     }
 
     private func showCopyFeedback(for index: Int) {
