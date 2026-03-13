@@ -10,6 +10,7 @@ class SearchState {
     var hasMore = true
     var errorMessage: String?
     var copyFeedbackIndex: Int?
+    var showCopyToast = false
 
     private var cursor = "0"
     private var currentTask: Task<Void, Never>?
@@ -100,6 +101,12 @@ class SearchState {
             ClipboardService.copyStatic(pngData: d)
         case .nsImage(let img):
             ClipboardService.copyNSImage(img)
+        }
+
+        showCopyToast = true
+        Task {
+            try? await Task.sleep(for: .milliseconds(1200))
+            if showCopyToast { showCopyToast = false }
         }
     }
 
