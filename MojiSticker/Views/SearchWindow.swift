@@ -17,6 +17,14 @@ struct SearchWindow: View {
             StickerGridView(state: searchState)
         }
         .frame(width: 380, height: 520)
+        .overlay(alignment: .bottom) {
+            if searchState.showCopyToast {
+                CopyToast()
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .padding(.bottom, 16)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: searchState.showCopyToast)
         .background(
             VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
         )
