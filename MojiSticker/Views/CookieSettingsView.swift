@@ -22,7 +22,7 @@ struct CookieSettingsPanel: View {
     // MARK: - Sections
 
     private var headerRow: some View {
-        Text("从浏览器复制抖音 Cookie 字符串粘贴到下方")
+        Text("可直接粘贴抖音 Cookie 字符串，或浏览器 Copy as cURL 的完整内容")
             .font(.caption)
             .foregroundStyle(.secondary)
     }
@@ -64,6 +64,9 @@ struct CookieSettingsPanel: View {
 
     private var buttonRow: some View {
         HStack {
+            Button("粘贴") { pasteFromClipboard() }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
             Button("清除") { clearCookies() }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -85,22 +88,26 @@ struct CookieSettingsPanel: View {
     // MARK: - Logic
 
     private func parseCookieString(_ raw: String) {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
+        let result = CookieInputParser.parse(raw)
+        guard !result.cookieString.isEmpty else {
             parsedCookies = [:]
             hasTtwid = false
+            statusMessage = ""
             return
         }
-        var result: [String: String] = [:]
-        for pair in trimmed.components(separatedBy: "; ") {
-            let parts = pair.split(separator: "=", maxSplits: 1)
-            guard parts.count == 2 else { continue }
-            let key = String(parts[0]).trimmingCharacters(in: .whitespaces)
-            let value = String(parts[1]).trimmingCharacters(in: .whitespaces)
-            if !key.isEmpty { result[key] = value }
+
+        let normalized = result.cookieString
+        if normalized != raw.trimmingCharacters(in: .whitespacesAndNewlines) {
+            cookieText = normalized
         }
-        parsedCookies = result
-        hasTtwid = result["ttwid"] != nil
+
+        parsedCookies = result.cookies
+        hasTtwid = result.cookies["ttwid"] != nil
+        statusMessage = switch result.source {
+        case .rawCookie: ""
+        case .curlCookieArgument: "已从 cURL 提取 Cookie"
+        case .cookieHeader: "已识别 Cookie 头"
+        }
     }
 
     private func loadExistingCookies() {
@@ -122,6 +129,17 @@ struct CookieSettingsPanel: View {
         } else {
             statusMessage = "保存失败"
         }
+    }
+
+    private func pasteFromClipboard() {
+        guard let text = NSPasteboard.general.string(forType: .string),
+              !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
+            statusMessage = "剪贴板里没有可用文本"
+            return
+        }
+        cookieText = text
+        parseCookieString(text)
     }
 
     private func clearCookies() {

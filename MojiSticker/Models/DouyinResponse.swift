@@ -2,10 +2,12 @@ import Foundation
 
 struct DouyinResponse: Decodable {
     let statusCode: Int
+    let statusMessage: String?
     let emoticonData: EmoticonData?
 
     enum CodingKeys: String, CodingKey {
         case statusCode = "status_code"
+        case statusMessage = "status_msg"
         case emoticonData = "emoticon_data"
     }
 }

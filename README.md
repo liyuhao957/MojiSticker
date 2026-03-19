@@ -39,9 +39,25 @@ xcodegen generate
 
 1. 启动应用，菜单栏出现 😊 图标
 2. 点击图标或按 `Cmd+Shift+K` 打开搜索窗口
-3. 首次使用需配置抖音 Cookie：点击设置图标，粘贴从浏览器复制的 Cookie
+3. 首次使用需配置抖音 Cookie：点击设置图标，粘贴从浏览器复制的 Cookie 或完整 cURL
 4. 输入关键词搜索表情包
 5. 点击表情即可复制，粘贴到聊天窗口使用
+
+### 抖音 Cookie 获取方法
+
+前提：先在浏览器里登录抖音网页版。
+
+1. 打开 [抖音网页版](https://www.douyin.com/)
+2. 打开开发者工具，切到 `Network`
+3. 在过滤框里搜索 `cookie`
+4. 任选一个 `www.douyin.com` 的请求，右键选择 `Copy as cURL`
+5. 回到 MojiSticker 设置面板，直接粘贴整段 cURL，应用会自动提取 Cookie
+
+提示：
+
+- 如果搜索不到请求，先刷新页面一次
+- 请确认当前是登录状态
+- 不要把完整 cURL 或 Cookie 发给别人，它们包含登录态信息
 
 ### 快捷键
 

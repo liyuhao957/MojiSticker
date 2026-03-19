@@ -14,6 +14,7 @@
 		5F15B77BB3CFCD611D3EB2A0 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09B621787CD91FCA53D5C0B7 /* main.swift */; };
 		678B5697987E8ACFB48E0033 /* CopyToast.swift in Sources */ = {isa = PBXBuildFile; fileRef = 704CCF5B78B3A3F67C7D8B27 /* CopyToast.swift */; };
 		742FD20D2D8294A817256E02 /* StickerItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 062974036783255704512B9A /* StickerItem.swift */; };
+		99635899862A165554C3A9C6 /* CookieInputParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CA38474E55F090F6A286D2C /* CookieInputParser.swift */; };
 		9DEBECCDC0C55E160861313A /* MojiStickerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9022AB926A1414F5C245C767 /* MojiStickerApp.swift */; };
 		A3C2E90E3589543FF3FBEFB6 /* ImageCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77FE3DC3923309D648B417B8 /* ImageCacheService.swift */; };
 		AFF409FD246D2D8463B1CBE2 /* SearchState.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2AB0D663EBD8D6632656467 /* SearchState.swift */; };
@@ -46,6 +47,7 @@
 		9022AB926A1414F5C245C767 /* MojiStickerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MojiStickerApp.swift; sourceTree = "<group>"; };
 		99D9E53691D64203789A3B6E /* PreviewOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewOverlay.swift; sourceTree = "<group>"; };
 		9A36EB98F0D6863A57F31DAC /* DouyinCookieManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DouyinCookieManager.swift; sourceTree = "<group>"; };
+		9CA38474E55F090F6A286D2C /* CookieInputParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookieInputParser.swift; sourceTree = "<group>"; };
 		A95D66B46F206ADA36BED682 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		B4BFB07FE8CA69FB11823452 /* StickerCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StickerCell.swift; sourceTree = "<group>"; };
 		DDD089561FA7F82C6BC6CE42 /* DouyinResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DouyinResponse.swift; sourceTree = "<group>"; };
@@ -94,6 +96,7 @@
 		94104C5D6DE97B90CFC84DD2 /* Utilities */ = {
 			isa = PBXGroup;
 			children = (
+				9CA38474E55F090F6A286D2C /* CookieInputParser.swift */,
 				FB649ACCD2C2EF37F00C01A5 /* GlobalHotkey.swift */,
 				4C949A93921ADCD7E7FE912F /* ImageProcessor.swift */,
 				EE40DEED4CB3A9C34896A38B /* IPCServer.swift */,
@@ -204,6 +207,7 @@
 			files = (
 				CED05682F66A18FBD4CCBE0C /* AppDelegate.swift in Sources */,
 				08B03EAC4711D0A80BBBEB29 /* ClipboardService.swift in Sources */,
+				99635899862A165554C3A9C6 /* CookieInputParser.swift in Sources */,
 				1127A3C8F83E7C990969ADBE /* CookieSettingsView.swift in Sources */,
 				678B5697987E8ACFB48E0033 /* CopyToast.swift in Sources */,
 				F00EE592FDE8A0B4B0DEE24F /* DouyinAPI.swift in Sources */,

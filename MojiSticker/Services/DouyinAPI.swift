@@ -10,7 +10,7 @@ actor DouyinAPI {
 
         var errorDescription: String? {
             switch self {
-            case .cookieExpired: return "Cookie 已过期，请重新设置"
+            case .cookieExpired: return "Cookie 已失效或未登录，请重新设置"
             case .rateLimited: return "请求过于频繁，请稍后再试"
             case .parameterError: return "参数错误"
             case .networkError(let error): return "网络错误: \(error.localizedDescription)"
@@ -48,23 +48,28 @@ actor DouyinAPI {
         cookies: [String: String]
     ) async throws -> (urls: [URL], nextCursor: String, hasMore: Bool) {
         let request = try buildRequest(keyword: keyword, cursor: cursor, cookies: cookies)
-        var lastError: Error = APIError.networkError(URLError(.unknown))
+        var lastError: Error?
 
         for attempt in 0..<3 {
             do {
                 let result = try await executeRequest(request, attempt: attempt)
                 return result
-            } catch let error as APIError where shouldRetryRateLimit(error) {
+            } catch let error as APIError where shouldRetryRateLimit(error) && attempt < 2 {
+                lastError = error
                 try await Task.sleep(for: .seconds(3 * (attempt + 1)))
                 continue
             } catch let error as APIError {
+                lastError = error
                 throw error
             } catch {
                 lastError = error
                 try await Task.sleep(for: .seconds(attempt == 0 ? 1 : 2))
             }
         }
-        throw APIError.networkError(lastError)
+        if let apiError = lastError as? APIError {
+            throw apiError
+        }
+        throw APIError.networkError(lastError ?? URLError(.unknown))
     }
 
     // MARK: - Private
@@ -94,7 +99,11 @@ actor DouyinAPI {
         case 0: break
         case 2: throw APIError.cookieExpired
         case 5: throw APIError.parameterError
-        case 8: throw APIError.rateLimited
+        case 8:
+            if isAuthenticationFailure(response.statusMessage) {
+                throw APIError.cookieExpired
+            }
+            throw APIError.rateLimited
         default: throw APIError.invalidResponse
         }
 
@@ -113,6 +122,11 @@ actor DouyinAPI {
     private func shouldRetryRateLimit(_ error: APIError) -> Bool {
         if case .rateLimited = error { return true }
         return false
+    }
+
+    private func isAuthenticationFailure(_ statusMessage: String?) -> Bool {
+        guard let statusMessage else { return false }
+        return statusMessage.contains("未登录") || statusMessage.contains("登录")
     }
 
     private func mapHTTPStatus(_ statusCode: Int) throws {
