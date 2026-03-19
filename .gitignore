@@ -14,6 +14,12 @@ build/
 *.swp
 *~
 
+# Local agent/design notes
+CLAUDE.md
+AGENTS.md
+.claude/
+.design/
+
 # Secrets & Credentials
 *.key
 *.pem
